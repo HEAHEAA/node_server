@@ -39,8 +39,8 @@ app.post('/refresh_token', userController.refreshJWT);
 app.get('/sample', userController.authenticateToken ,userController.SampleAPI);
 
 
-app.post('/upload', upload.single('file'), fileController.filesUpload);
-app.get('/file/:sys_file_id', fileController.filesShowClient);
+app.post('/upload', upload.single('file'), userController.authenticateToken, fileController.filesUpload);
+app.get('/file/:sys_file_id', userController.authenticateToken, fileController.filesShowClient);
 
 
 
