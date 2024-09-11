@@ -1,6 +1,8 @@
 const userController = require('./controller/userController');
 const fileController = require('./controller/fileController');
+const excelController = require('./controller/excelController');
 
+const ExcelJS = require('exceljs');
 const multer = require('multer');
 const fs = require('fs');
 const bodyParser = require('body-parser');
@@ -12,7 +14,6 @@ const port = 8080;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
-
 //파일 저장위치 및 파일명 설정 
 const storage = multer.diskStorage({
     destination: function(req, file, cb){
@@ -23,7 +24,6 @@ const storage = multer.diskStorage({
         cb(null, uniqueSuffix+'-'+file.originalname); //고유한 파일명 생성
     }
 });
-
 
 const upload = multer({storage: storage});
 
@@ -44,6 +44,27 @@ app.get('/file/:sys_file_id', userController.authenticateToken, fileController.f
 
 
 
+app.get('/excel', async (req, res) => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sample Data');
+    
+    worksheet.columns = [
+        { header: 'ID', key: 'id', width: 10 },
+        { header: 'Name', key: 'name', width: 10 },
+        { header: 'Age', key: 'age', width: 10 },
+        { header: 'Email', key: 'email', width: 30 }
+    ];
+
+    worksheet.addRow({ id: 1, name: 'John Doe', age: 30, email: 'john.doe@example.com' });
+    worksheet.addRow({ id: 2, name: 'Jane Smith', age: 25, email: 'jane.smith@example.com' });
+    worksheet.addRow({ id: 3, name: 'Sam Brown', age: 35, email: 'sam.brown@example.com' });
+
+    res.setHeader('Content-Disposition', 'attachment; filename=sample_data.xlsx');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+    await workbook.xlsx.write(res);
+    res.end();
+});
 
 
 app.listen(port, ()=> {
