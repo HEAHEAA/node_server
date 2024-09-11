@@ -1,4 +1,4 @@
-const registerController = require('./controller/registerController');
+const userController = require('./controller/userController');
 const bodyParser = require('body-parser');
 const express = require('express');
 
@@ -8,7 +8,9 @@ const port = 8080;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
-app.post('/register', registerController.Register);
+app.post('/register', userController.Register);
+app.post('/login', userController.Login);
+app.post('/refresh_token', userController.refreshJWT);
 
 
 
