@@ -5,6 +5,25 @@ const results = require('../config/result');
 
 const fs = require('fs');
 
+
+exports.fileSelectAll = async(req, res) => {
+    pool.query(sql.fileSelectAll, (err,data) => {
+        if(err) {
+            console.error("FileSelectAll Error", err);
+            res.status(500).send('FileSelectAll Error');
+        }else{
+            results.results = {
+                title: '파일업로드 리스트 조회',
+                success: true,
+                message: 'success',
+                data: data.rows,
+                total: data.rows.length
+            };
+            res.status(200).json(results.results);
+        }
+    })
+}
+
 //파일 업로드후 DB 저장
 exports.filesUpload = async(req,res) => {
     if(!req.file){

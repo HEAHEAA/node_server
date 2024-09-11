@@ -165,7 +165,7 @@ exports.refreshJWT = async (req, res) => {
     }
 }
 
-
+// 검증 리스트
 exports.SampleAPI = async(req,res) => {
     const sampleQuery = "select sys_username from node.sys_users";
     pool.query(sampleQuery, (err,data) => {
@@ -183,3 +183,24 @@ exports.SampleAPI = async(req,res) => {
         }
     })
 }
+
+//사용자 전체 리스트
+exports.UserAllList = async(req, res) => {
+    pool.query(sql.userAllList, (err,data) => {
+        if(err){
+            console.error("UserAllList Error", err);
+            res.status(500).send('UserAllList Error');
+        }else {
+            results.results = {
+                title: '사용자 전체 리스트 조회',
+                success: true,
+                message: 'success',
+                data: data.rows,
+                total: data.rows.length
+            };
+            res.status(200).json(results.results);
+        }
+    });
+}
+
+

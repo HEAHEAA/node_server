@@ -1,6 +1,8 @@
 const userController = require('./controller/userController');
 const fileController = require('./controller/fileController');
-const excelController = require('./controller/excelController');
+
+// 내부 프로젝트 파일 적용
+// const excelController = require('./controller/excelController');
 
 const ExcelJS = require('exceljs');
 const multer = require('multer');
@@ -32,19 +34,18 @@ if(!fs.existsSync('./uploads')){
     fs.mkdirSync('./uploads');
 }
 
-app.post('/register', userController.Register);
-app.post('/login', userController.Login);
-app.post('/refresh_token', userController.refreshJWT);
+app.post('/api/register', userController.Register);
+app.post('/api/login', userController.Login);
+app.post('/api/refresh_token', userController.refreshJWT);
 
-app.get('/sample', userController.authenticateToken ,userController.SampleAPI);
+app.get('/api/sample', userController.authenticateToken ,userController.SampleAPI);
+app.get('/api/userList', userController.UserAllList);
 
+app.get('/api/file/list', fileController.fileSelectAll);
+app.post('/api/upload', upload.single('file'), userController.authenticateToken, fileController.filesUpload);
+app.get('/api/file/:sys_file_id', userController.authenticateToken, fileController.filesShowClient);
 
-app.post('/upload', upload.single('file'), userController.authenticateToken, fileController.filesUpload);
-app.get('/file/:sys_file_id', userController.authenticateToken, fileController.filesShowClient);
-
-
-
-app.get('/excel', async (req, res) => {
+app.get('/api/excel', async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Sample Data');
     
@@ -65,6 +66,8 @@ app.get('/excel', async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
 });
+
+
 
 
 app.listen(port, ()=> {
