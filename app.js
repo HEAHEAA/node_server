@@ -12,8 +12,7 @@ app.post('/register', userController.Register);
 app.post('/login', userController.Login);
 app.post('/refresh_token', userController.refreshJWT);
 
-
-
+app.get('/sample', userController.authenticateToken ,userController.SampleAPI);
 
 app.listen(port, ()=> {
     console.log(`Node_Server API listening on Port : ${port}`);

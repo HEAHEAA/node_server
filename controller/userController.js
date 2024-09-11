@@ -34,7 +34,7 @@ exports.Register = async (req, res) => {
     ], (err, data) => {
         if (err) {
             res.status(500).send('Register Error');
-            console.error("회원가입 에러 :" , err);
+            console.error("회원가입 에러 :", err);
         } else {
             results.results = {
                 title: '회원가입 성공',
@@ -49,79 +49,78 @@ exports.Register = async (req, res) => {
 
 
 // ----- 로그인 ----- //
-exports.Login = async(req,res) => {
-    const {sys_user_sign_id, sys_password_hash} = req.body;
+exports.Login = async (req, res) => {
+    const { sys_user_sign_id, sys_password_hash } = req.body;
 
-    pool.query(sql.userLogin, [sys_user_sign_id], (err,data) => {
-        if(err){
-            console.error("로그인 에러 :",err);
+    pool.query(sql.userLogin, [sys_user_sign_id], async(err, data) => {
+        if (err) {
+            console.error("로그인 에러 :", err);
             res.status(500).send('Login Error');
-        }else{
-            
+        } else {
+
             // 회원이 없는 경우
-            if(data.rows.length === 0) {
-                res.status(404).json({message: "회원을 찾을 수 없습니다."})
+            if (data.rows.length === 0) {
+                res.status(404).json({ message: "회원을 찾을 수 없습니다." })
             }
 
-            //비밀번호 비교
+            //1-1. 비밀번호 비교
             const dbUser = data.rows[0];
+            const isMatch = await bcrypt.compare(sys_password_hash, dbUser.sys_password_hash);
 
-            // console.log(sys_password_hash, dbUser);
-            const isMatch = bcrypt.compare(sys_password_hash, dbUser.sys_password_hash);
+            //1-2. 비밀번호 매치가 안될경우
+            if (!isMatch) {
+                res.status(401).json({ message: "아이디 또는 비밀번호가 맞지 않습니다." });
+            } else {
+                //JWT 엑세스토큰 생성
+                const accessToekn = jwt.sign(
+                    { user_id: dbUser.sys_user_sign_id, username: dbUser.sys_username },
+                    ACCESS_TOKEN_SECRET,
+                    { expiresIn: '15m' } //엑세스 토큰 만료시간 15분
+                );
 
-                //비밀번호 매치가 안될경우
-            if(!isMatch){
-                res.status(401).json({message: "아이디 또는 비밀번호가 맞지 않습니다."});
+                //리프레시 토큰 생성
+                const refreshToken = jwt.sign(
+                    { user_id: dbUser.sys_user_sign_id, username: dbUser.sys_username },
+                    REFRESH_TOKEN_SECRET,
+                    { expiresIn: '7d' } //리프레시 토큰 만료시간 7일
+                );
+
+                //값 내보내기
+                results.results = {
+                    title: '로그인 성공',
+                    success: true,
+                    message: 'success',
+                    data: [
+                        {
+                            sys_user_sign_id: dbUser.sys_user_sign_id,
+                            sys_username: dbUser.sys_username,
+                            sys_user_auth: dbUser.sys_user_auth,
+                            accessToekn: accessToekn,
+                            refreshToken: refreshToken
+                        }
+                    ],
+                    total: 1
+                }
+
+                //API 전송
+                res.status(200).json(results.results);
             }
-
-            //JWT 엑세스토큰 생성
-            const accessToekn = jwt.sign(
-                {user_id: dbUser.sys_user_sign_id, username: dbUser.sys_username},
-                ACCESS_TOKEN_SECRET,
-                {expiresIn: '15m'} //엑세스 토큰 만료시간 15분
-            );
-
-            //리프레시 토큰 생성
-            const refreshToken = jwt.sign(
-                {user_id: dbUser.sys_user_sign_id, username: dbUser.sys_username},
-                REFRESH_TOKEN_SECRET,
-                {expiresIn: '7d'} //리프레시 토큰 만료시간 7일
-            );
-
-
-            results.results = {
-                title: '로그인 성공',
-                success: true,
-                message: 'success',
-                data: [
-                    {
-                        sys_user_sign_id: dbUser.sys_user_sign_id,
-                        sys_username: dbUser.sys_username,
-                        sys_user_auth: dbUser.sys_user_auth,
-                        accessToekn: accessToekn,
-                        refreshToken: refreshToken
-                    }
-                ],
-                total: 1
-            }
-
-            //토큰 반환
-            res.status(200).json(results.results);
         }
     });
 }
 
 
+
 // JWT 검증 미들웨어
-exports.authenticateToken = async(req, res, next) => {
+exports.authenticateToken = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
-    if(!token) {
-        res.status(401).json({message: "접근권한이 없습니다."});
-    }else{
-        jwt.verify(token, ACCESS_TOKEN_SECRET, (err,user) => {
-            if(err) return res.status(403).json({message: "유효하는 토큰이 아닙니다."});
+    if (!token) {
+        res.status(401).json({ message: "접근권한이 없습니다." });
+    } else {
+        jwt.verify(token, ACCESS_TOKEN_SECRET, (err, user) => {
+            if (err) return res.status(403).json({ message: "유효하는 토큰이 아닙니다." });
             req.user = user;
             next();
         });
@@ -130,20 +129,19 @@ exports.authenticateToken = async(req, res, next) => {
 
 
 //토큰갱신
-exports.refreshJWT = async(req, res) => {
-    const {refreshToken} = req.body;
+exports.refreshJWT = async (req, res) => {
+    const { refreshToken } = req.body;
 
-    if(!refreshToken) {
-        res.status(401).json({message: "접근권한이 없습니다."});
-    }else{
-
-        jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, (err,user) => {
-            if(err) return res.status(403).json({message: "유효하는 토큰이 아닙니다."});
+    if (!refreshToken) {
+        res.status(401).json({ message: "접근권한이 없습니다." });
+    } else {
+        jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, (err, user) => {
+            if (err) return res.status(403).json({ message: "유효하는 토큰이 아닙니다." });
 
             const accessToekn = jwt.sign(
-                {user_id: user.sys_user_sign_id, username: user.sys_username},
+                { user_id: user.sys_user_sign_id, username: user.sys_username },
                 ACCESS_TOKEN_SECRET,
-                {expiresIn: '15m'} //엑세스 토큰 만료시간 15분
+                { expiresIn: '15m' } //엑세스 토큰 만료시간 15분
             );
 
             results.results = {
@@ -165,4 +163,23 @@ exports.refreshJWT = async(req, res) => {
             res.status(200).json(results.results);
         });
     }
+}
+
+
+exports.SampleAPI = async(req,res) => {
+    const sampleQuery = "select sys_username from node.sys_users";
+    pool.query(sampleQuery, (err,data) => {
+        if(err){
+            console.log(err);
+        }else{
+            results.results = {
+                title: '검증 API',
+                success: true,
+                message: 'success',
+                data: data.rows,
+                total: 1
+            };
+            res.status(200).json(results.results);
+        }
+    })
 }
