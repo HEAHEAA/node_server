@@ -15,7 +15,7 @@ pool.connect((err) => {
     console.log('pg db connect!');
 });
 
-const tableQuery = "SET search_path TO 'public'";
+const tableQuery = "SET search_path TO 'node'";
 pool.query(tableQuery, (err, rows, fields) => {
     if(err) console.log(err);
     console.log("GET Schema!");
